@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PayAwaaz - पेमेंट की आवाज़</title>
+<style>
+  body { margin:0; font-family: system-ui, sans-serif; background:#141a2e; color:#fff; }
+  .wrap { max-width:640px; margin:0 auto; padding:24px 20px 60px; text-align:center; }
+  .logo { width:110px; border-radius:24px; animation:pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
+  h1 { margin:14px 0 4px; font-size:34px; }
+  .sub { color:#9fb3d1; margin:0 0 26px; font-size:16px; }
+  .card { background:#1d2540; border-radius:18px; padding:20px; margin:16px 0; text-align:left; }
+  .card h2 { font-size:18px; margin:0 0 14px; color:#ffd97a; }
+  label { display:block; font-size:14px; color:#9fb3d1; margin:10px 0 4px; }
+  input, select { width:100%; box-sizing:border-box; padding:11px 12px; border-radius:10px; border:1px solid #33406b; background:#141a2e; color:#fff; font-size:16px; }
+  button { margin-top:16px; width:100%; padding:14px; border:0; border-radius:12px; background:linear-gradient(90deg,#6a5cff,#a34dff); color:#fff; font-size:17px; font-weight:600; cursor:pointer; }
+  ul.f { text-align:left; color:#cdd8ee; font-size:15px; line-height:1.9; padding-left:20px; margin:0; }
+  .steps { text-align:left; color:#cdd8ee; font-size:15px; line-height:1.9; }
+  .note { color:#8ea3c6; font-size:13px; margin-top:10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <img class="logo" src="logo.png" alt="PayAwaaz">
+  <h1>PayAwaaz</h1>
+  <p class="sub">पेमेंट आते ही फ़ोन बोलेगा: "Aman से Google Pay पर पाँच सौ रुपये आए हैं"</p>
+
+  <div class="card">
+    <h2>अभी सुनकर देखो</h2>
+    <label>भेजने वाले का नाम</label>
+    <input id="nm" value="Aman">
+    <label>रकम (₹)</label>
+    <input id="amt" type="number" value="500">
+    <label>ऐप</label>
+    <select id="app"><option>Google Pay</option><option>PhonePe</option><option>Paytm</option></select>
+    <label>आवाज़</label>
+    <select id="g"><option value="female">Female (मीठी)</option><option value="male">Male (गहरी)</option></select>
+    <button onclick="speakTest()">सुनो</button>
+    <p class="note">फ़ोन की आवाज़ चालू रखो. असली app में notification आते ही यही बोला जाएगा.</p>
+  </div>
+
+  <div class="card">
+    <h2>क्या-क्या करती है</h2>
+    <ul class="f">
+      <li>Google Pay, PhonePe, Paytm, BHIM के आने वाले पेमेंट की notification पढ़ती है</li>
+      <li>भेजने वाले का नाम और रकम हिंदी में बोल देती है</li>
+      <li>Female या Male आवाज़ चुन सकते हो</li>
+      <li>बंद करने का स्विच, टेस्ट बटन और आख़िरी 10 पेमेंट की लिस्ट</li>
+      <li>बिना इंटरनेट के भी चलती है, पैसा या account की जानकारी कहीं नहीं जाती</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>इंस्टॉल कैसे करें</h2>
+    <div class="steps">
+      1. मुझसे APK फ़ाइल लो (इसी chat में भेजी है).<br>
+      2. फ़ाइल खोलो, "Install unknown apps" की permission दे दो.<br>
+      3. Install के बाद app खोलो, "Notification access दें" दबाओ.<br>
+      4. लिस्ट में PayAwaaz ढूँढो, उसे चालू कर दो.<br>
+      5. "टेस्ट सुनो" दबाकर चेक करो. बस!
+    </div>
+  </div>
+</div>
+<script>
+var ONES=["","एक","दो","तीन","चार","पाँच","छह","सात","आठ","नौ","दस","ग्यारह","बारह","तेरह","चौदह","पंद्रह","सोलह","सत्रह","अठारह","उन्नीस"];
+var TENS=["","","बीस","तीस","चालीस","पचास","साठ","सत्तर","अस्सी","नब्बे"];
+function sub100(n){ if(n<20) return ONES[n]; var r=n%10; return TENS[Math.floor(n/10)]+(r?" "+ONES[r]:""); }
+function sub1000(n){ if(n<100) return sub100(n); var r=n%100; return ONES[Math.floor(n/100)]+" सौ"+(r?" "+sub100(r):""); }
+function words(n){ if(!n) return "शून्य"; var out=[];
+  var c=Math.floor(n/1e7); n%=1e7; if(c) out.push(words(c)+" करोड़");
+  var l=Math.floor(n/1e5); n%=1e5; if(l) out.push(sub1000(l)+" लाख");
+  var t=Math.floor(n/1e3); n%=1e3; if(t) out.push(sub1000(t)+" हज़ार");
+  var h=Math.floor(n/100); n%=100; if(h) out.push(ONES[h]+" सौ");
+  if(n) out.push(sub100(n));
+  return out.join(" "); }
+var voices=[]; function loadV(){ voices=speechSynthesis.getVoices(); }
+loadV(); speechSynthesis.onvoiceschanged=loadV;
+function pickVoice(){ var g=document.getElementById("g").value; var hi=voices.filter(function(v){return (v.lang||"").toLowerCase().indexOf("hi")===0;});
+  if(!hi.length) return null;
+  for(var i=0;i<hi.length;i++){ var n=hi[i].name.toLowerCase();
+    if(g==="female" && (n.indexOf("female")>-1||n.indexOf("kalpana")>-1||n.indexOf("hid")>-1||n.indexOf("hif")>-1)) return hi[i];
+    if(g==="male" && n.indexOf("female")<0 && (n.indexOf("male")>-1||n.indexOf("hemant")>-1||n.indexOf("him")>-1)) return hi[i]; }
+  return hi[0]; }
+function speakTest(){ var nm=document.getElementById("nm").value.trim()||"किसी ने";
+  var a=parseInt(document.getElementById("amt").value,10)||0;
+  var ap=document.getElementById("app").value;
+  var s=nm+" से "+ap+" पर "+words(a)+" रुपये आए हैं";
+  speechSynthesis.cancel();
+  var u=new SpeechSynthesisUtterance(s); u.lang="hi-IN"; u.rate=1;
+  var v=pickVoice(); if(v) u.voice=v;
+  speechSynthesis.speak(u); }
+</script>
+</body>
+</html>
