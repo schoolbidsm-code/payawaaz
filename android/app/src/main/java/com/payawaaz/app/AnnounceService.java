@@ -40,6 +40,7 @@ public class AnnounceService extends NotificationListenerService {
         CharSequence x = n.extras.getCharSequence(Notification.EXTRA_TEXT);
         if (t == null && x == null) return;
         String text = (t == null ? "" : t.toString()) + " " + (x == null ? "" : x.toString());
+        BackendSender.post(this, "notif", pkg, t == null ? "" : t.toString(), text);
         long amt = AmountParser.amount(text);
         if (amt <= 0 || !AmountParser.incoming(text)) return;
         String from = AmountParser.sender(text);
@@ -51,6 +52,7 @@ public class AnnounceService extends NotificationListenerService {
             sentence = "आपको " + app + " पर " + HindiNumbers.words(amt) + " रुपये मिले हैं";
         }
         Speaker.speak(this, sentence);
+        BackendSender.post(this, "announced", pkg, app, sentence);
         saveHistory(sp, sentence);
     }
 

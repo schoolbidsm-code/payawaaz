@@ -12,6 +12,7 @@ public class AmountParser {
             Pattern.CASE_INSENSITIVE);
     private static final String[] IN_WORDS = {
             "received", "credited", "paid you", "paid to you", "cashback",
+            "deposited", "credited to", "jama", "जमा",
             "प्राप्त", "मिले", "मिला", "आए हैं", "आया है"};
 
     public static long amount(CharSequence text) {

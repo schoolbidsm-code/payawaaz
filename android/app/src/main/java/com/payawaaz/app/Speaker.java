@@ -38,6 +38,10 @@ public class Speaker {
         lastSpoken = s;
         lastAt = now;
         if (!ready) { pending = s; return; }
+        try {
+            android.media.ToneGenerator tg = new android.media.ToneGenerator(android.media.AudioManager.STREAM_MUSIC, 70);
+            tg.startTone(android.media.ToneGenerator.TONE_PROP_BEEP2, 150);
+        } catch (Exception ignored) { }
         android.os.Bundle p = new android.os.Bundle();
         p.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f);
         tts.speak(s, TextToSpeech.QUEUE_ADD, p, "aw" + now);

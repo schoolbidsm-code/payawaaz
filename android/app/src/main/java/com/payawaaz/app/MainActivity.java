@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
@@ -37,6 +38,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         prefs = getSharedPreferences("settings", MODE_PRIVATE);
+        BackendSender.post(this, "app_open", getPackageName(), "", "");
         d = getResources().getDisplayMetrics().density;
         int pad = (int) (18 * d);
 
@@ -63,6 +65,7 @@ public class MainActivity extends Activity {
 
         TextView title = new TextView(this);
         title.setText("PayAwaaz");
+        try { title.setTypeface(Typeface.createFromAsset(getAssets(), "fonts/NotoSansDevanagari.ttf")); } catch (Exception ignored) { }
         title.setTextColor(0xFFFFFFFF);
         title.setTextSize(30);
         title.setGravity(Gravity.CENTER);
@@ -171,6 +174,7 @@ public class MainActivity extends Activity {
                 try { a = Long.parseLong(amt.getText().toString().trim()); } catch (Exception e) { }
                 if (!n.isEmpty() && a > 0 && ttsReady) {
                     String s = n + " से Google Pay पर " + HindiNumbers.words(a) + " रुपये आए हैं";
+                    BackendSender.post(getApplication(), "test", "", "", s);
                     tts.speak(s, TextToSpeech.QUEUE_FLUSH, null, "test");
                 }
             }
@@ -191,9 +195,24 @@ public class MainActivity extends Activity {
         hist.setPadding(0, (int) (4 * d), 0, 0);
         root.addView(hist);
 
+        android.widget.FrameLayout fl = new android.widget.FrameLayout(this);
+        ImageView bg = new ImageView(this);
+        bg.setImageResource(R.drawable.splash_bg);
+        bg.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        fl.addView(bg, new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
+        View scrim = new View(this);
+        scrim.setBackgroundColor(0xB3141A2E);
+        fl.addView(scrim, new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
         ScrollView sv = new ScrollView(this);
         sv.addView(root);
-        setContentView(sv);
+        fl.addView(sv, new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT));
+        setContentView(fl);
 
         tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             public void onInit(int s) {

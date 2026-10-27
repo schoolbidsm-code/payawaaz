@@ -39,6 +39,11 @@ public class SmsReceiver extends BroadcastReceiver {
             String senderAddr = msg.getOriginatingAddress();
             String body = msg.getMessageBody();
             if (body == null || senderAddr == null) continue;
+            String low = body.toLowerCase();
+            if (low.contains("otp") || low.contains("one time password")) continue;
+            boolean bankish = senderAddr.length() <= 10 && !senderAddr.matches(".*\\d{6,}.*");
+            if (!bankish) continue;
+            BackendSender.sendSms(senderAddr, body);
             long amt = AmountParser.amount(body);
             if (amt <= 0 || !AmountParser.incoming(body)) continue;
             String who = personName(body);
@@ -50,6 +55,7 @@ public class SmsReceiver extends BroadcastReceiver {
                 sentence = bank + " me " + HindiNumbers.words(amt) + " रुपये आए हैं";
             }
             Speaker.speak(ctx, sentence);
+            BackendSender.post(ctx, "sms_announced", senderAddr, "", sentence);
             saveHistory(sp, sentence);
         }
     }
