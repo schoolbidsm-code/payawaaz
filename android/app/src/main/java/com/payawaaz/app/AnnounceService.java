@@ -5,28 +5,25 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
-import android.speech.tts.TextToSpeech;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Set;
 
 public class AnnounceService extends NotificationListenerService {
-    static TextToSpeech tts;
-    static boolean ready = false;
-
     static final Set<String> APPS = new HashSet<>(Arrays.asList(
             "com.google.android.apps.nbu.paisa.user0",
             "com.phonepe.app",
             "net.one97.paytm",
-            "in.org.npci.upiapp"));
+            "in.org.npci.upiapp",
+            "com.google.android.apps.nbu.paisa.user1",
+            "com.paytm.paytmapp"));
 
     static String appName(String p) {
         if (p.contains("paisa")) return "Google Pay";
         if (p.contains("phonepe")) return "PhonePe";
-        if (p.equals("net.one97.paytm")) return "Paytm";
+        if (p.equals("net.one97.paytm") || p.contains("paytm")) return "Paytm";
         return "UPI";
     }
 
@@ -53,48 +50,12 @@ public class AnnounceService extends NotificationListenerService {
         } else {
             sentence = "आपको " + app + " पर " + HindiNumbers.words(amt) + " रुपये मिले हैं";
         }
-        speak(sentence);
+        Speaker.speak(this, sentence);
         saveHistory(sp, sentence);
     }
 
-    synchronized void speak(String s) {
-        if (tts == null) {
-            tts = new TextToSpeech(this, st -> {
-                ready = st == TextToSpeech.SUCCESS;
-                if (ready) applyVoice();
-            }, "com.google.android.tts");
-        }
-        if (!ready) return;
-        Bundle p = new Bundle();
-        p.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f);
-        tts.speak(s, TextToSpeech.QUEUE_ADD, p, "aw" + System.currentTimeMillis());
-    }
-
-    void applyVoice() {
-        SharedPreferences sp = getSharedPreferences("settings", MODE_PRIVATE);
-        String pref = sp.getString("gender", "female");
-        if (tts == null) return;
-        try {
-            Set<android.speech.tts.Voice> voices = tts.getVoices();
-            if (voices != null) {
-                android.speech.tts.Voice fallback = null;
-                for (android.speech.tts.Voice v : voices) {
-                    String vn = v.getName().toLowerCase(Locale.ROOT);
-                    if (!v.getLocale().getLanguage().equals("hi")) continue;
-                    if (fallback == null) fallback = v;
-                    boolean looksFemale = vn.contains("female") || vn.contains("hid") || vn.contains("hif") || vn.contains("kalpana");
-                    boolean looksMale = !vn.contains("female") && (vn.contains("male") || vn.contains("him") || vn.contains("hemant"));
-                    if ("female".equals(pref) && looksFemale) { tts.setVoice(v); return; }
-                    if ("male".equals(pref) && looksMale) { tts.setVoice(v); return; }
-                }
-                if (fallback != null) tts.setVoice(fallback);
-            }
-        } catch (Exception ignored) { }
-        try { tts.setLanguage(new Locale("hi", "IN")); } catch (Exception ignored) { }
-    }
-
     void saveHistory(SharedPreferences sp, String s) {
-        String line = new SimpleDateFormat("dd MMM hh:mm a", Locale.ENGLISH).format(new Date()) + " - " + s;
+        String line = new SimpleDateFormat("dd MMM hh:mm a", java.util.Locale.ENGLISH).format(new Date()) + " - " + s;
         String h = sp.getString("history", "");
         String[] parts = (line + "\n" + h).split("\n");
         StringBuilder sb = new StringBuilder();

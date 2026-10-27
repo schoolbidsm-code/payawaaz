@@ -1,9 +1,13 @@
 package com.payawaaz.app;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.text.InputType;
@@ -44,7 +48,7 @@ public class MainActivity extends Activity {
 
         ImageView logo = new ImageView(this);
         logo.setImageResource(R.mipmap.ic_launcher);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((int) (120 * d), (int) (120 * d));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams((int) (110 * d), (int) (110 * d));
         lp.gravity = Gravity.CENTER_HORIZONTAL;
         lp.topMargin = (int) (8 * d);
         lp.bottomMargin = (int) (8 * d);
@@ -65,27 +69,61 @@ public class MainActivity extends Activity {
         root.addView(title);
 
         TextView sub = new TextView(this);
-        sub.setText("पेमेंट आते ही आवाज़ में नाम और रकम");
+        sub.setText("पेमेंट आते ही आवाज़ में नाम और रकम (app + SMS दोनों)");
         sub.setTextColor(0xFF9FB3D1);
-        sub.setTextSize(15);
+        sub.setTextSize(14);
         sub.setGravity(Gravity.CENTER);
         root.addView(sub);
 
         statusView = new TextView(this);
-        statusView.setTextSize(15);
+        statusView.setTextSize(14);
         statusView.setGravity(Gravity.CENTER);
         statusView.setPadding(0, (int) (16 * d), 0, (int) (4 * d));
         statusView.setTextColor(0xFFB8E6B8);
         root.addView(statusView);
 
         Button allow = new Button(this);
-        allow.setText("Notification access दें");
+        allow.setText("1. Notification access दें");
         allow.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
             }
         });
         root.addView(allow);
+
+        Button smsB = new Button(this);
+        smsB.setText("2. SMS permission दें");
+        smsB.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                if (checkSelfPermission(Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{Manifest.permission.RECEIVE_SMS}, 11);
+                }
+            }
+        });
+        root.addView(smsB);
+
+        Button batt = new Button(this);
+        batt.setText("3. Battery अनुमति (app बंद न हो)");
+        batt.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View v) {
+                try {
+                    Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:" + getPackageName()));
+                    startActivity(i);
+                } catch (Exception e) {
+                    startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+                }
+            }
+        });
+        root.addView(batt);
+
+        TextView hint = new TextView(this);
+        hint.setText("Realme/OPPO: Settings → App management → PayAwaaz → Autostart भी On करें.");
+        hint.setTextColor(0xFF9FB3D1);
+        hint.setTextSize(12);
+        hint.setGravity(Gravity.CENTER);
+        hint.setPadding(0, (int) (8 * d), 0, 0);
+        root.addView(hint);
 
         TextView vl = new TextView(this);
         vl.setText("आवाज़ चुनें:");
@@ -157,11 +195,13 @@ public class MainActivity extends Activity {
         sv.addView(root);
         setContentView(sv);
 
-        tts = new TextToSpeech(this, s -> {
-            if (s == TextToSpeech.SUCCESS) {
-                ttsReady = true;
-                tts.setLanguage(new Locale("hi", "IN"));
-                setGenderVoice();
+        tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+            public void onInit(int s) {
+                if (s == TextToSpeech.SUCCESS) {
+                    ttsReady = true;
+                    tts.setLanguage(new Locale("hi", "IN"));
+                    setGenderVoice();
+                }
             }
         }, "com.google.android.tts");
     }
@@ -191,13 +231,36 @@ public class MainActivity extends Activity {
         return s != null && s.contains(getPackageName());
     }
 
+    private boolean smsGranted() {
+        return checkSelfPermission(Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean batteryOk() {
+        try {
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            return pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+        } catch (Exception e) { return true; }
+    }
+
+    private void refreshStatus() {
+        if (statusView == null) return;
+        String nl = listenerEnabled() ? "✓ Notification access" : "✗ Notification access";
+        String sl = smsGranted() ? "✓ SMS permission" : "✗ SMS permission";
+        String bl = batteryOk() ? "✓ Battery छूट" : "✗ Battery छूट";
+        boolean all = listenerEnabled() && smsGranted();
+        statusView.setText(nl + "  " + sl + "\n" + bl + (all ? "\nसब तैयार है!" : ""));
+        statusView.setTextColor(all ? 0xFFB8E6B8 : 0xFFFFD8A8);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(code, perms, res);
+        if (code == 11) refreshStatus();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
-        if (statusView != null) {
-            statusView.setText(listenerEnabled()
-                    ? "PayAwaaz चालू है. पेमेंट आते ही बोलेगी."
-                    : "PayAwaaz बंद है. नीचे वाला बटन दबाकर permission दें.");
-        }
+        refreshStatus();
     }
 }
